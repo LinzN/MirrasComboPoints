@@ -1,4 +1,4 @@
--- Mirra's Simple Combo Points
+-- Mirra's Combo Points
 -- Shows your combo points on your target's nameplate (WoW: Forever).
 
 local ADDON, ns = ...
@@ -38,7 +38,7 @@ local container
 local lastReason = "no update yet"
 
 local function Print(msg)
-    print("|cffffcc00Mirra's Simple Combo Points:|r " .. tostring(msg))
+    print("|cffffcc00Mirra's Combo Points:|r " .. tostring(msg))
 end
 
 local function IsSecret(v)
@@ -143,7 +143,7 @@ local function PaintGroup(g, cur, max)
 end
 
 local function BuildFrames()
-    container = CreateGroup(UIParent, "MirrasSimpleComboPointsFrame")
+    container = CreateGroup(UIParent, "MirrasComboPointsFrame")
     container:SetFrameStrata("HIGH")
     container:Hide()
 end
@@ -256,8 +256,8 @@ Reg("UNIT_COMBO_POINTS")
 ev:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" then
         if arg1 ~= ADDON then return end
-        MirrasSimpleComboPointsDB = MirrasSimpleComboPointsDB or {}
-        db = MirrasSimpleComboPointsDB
+        MirrasComboPointsDB = MirrasComboPointsDB or {}
+        db = MirrasComboPointsDB
         for k, v in pairs(defaults) do
             if db[k] == nil then db[k] = Copy(v) end
         end
@@ -305,9 +305,9 @@ local function Debug()
     print("  Status:", lastReason)
 end
 
-SLASH_MIRRASSIMPLECOMBOPOINTS1 = "/mscp"
-SLASH_MIRRASSIMPLECOMBOPOINTS2 = "/mirrascombopoints"
-SlashCmdList.MIRRASSIMPLECOMBOPOINTS = function(input)
+SLASH_MIRRASCOMBOPOINTS1 = "/mcp"
+SLASH_MIRRASCOMBOPOINTS2 = "/mirrascombopoints"
+SlashCmdList.MIRRASCOMBOPOINTS = function(input)
     local cmd, val = strsplit(" ", (input or ""):lower(), 2)
     local n = tonumber(val)
     if cmd == "" or cmd == "config" or cmd == "options" then
@@ -336,19 +336,19 @@ SlashCmdList.MIRRASSIMPLECOMBOPOINTS = function(input)
         for k, v in pairs(defaults) do db[k] = Copy(v) end
         Print("Settings reset.")
     elseif cmd ~= "help" then
-        Print("Unknown command – /mscp help")
+        Print("Unknown command – /mcp help")
         return
     else
         Print("Commands:")
-        print("  /mscp                  – open settings")
-        print("  /mscp debug            – print diagnostics")
-        print("  /mscp size <4-40>      – pip size (current " .. db.size .. ")")
-        print("  /mscp spacing <0-20>   – spacing (current " .. db.spacing .. ")")
-        print("  /mscp x <n> | y <n>    – offset (current " .. db.offsetX .. " / " .. db.offsetY .. ")")
-        print("  /mscp top | bottom     – above/below the health bar")
-        print("  /mscp empty            – toggle hide at 0 points")
-        print("  /mscp slots            – toggle empty slots")
-        print("  /mscp reset            – restore defaults")
+        print("  /mcp                  – open settings")
+        print("  /mcp debug            – print diagnostics")
+        print("  /mcp size <4-40>      – pip size (current " .. db.size .. ")")
+        print("  /mcp spacing <0-20>   – spacing (current " .. db.spacing .. ")")
+        print("  /mcp x <n> | y <n>    – offset (current " .. db.offsetX .. " / " .. db.offsetY .. ")")
+        print("  /mcp top | bottom     – above/below the health bar")
+        print("  /mcp empty            – toggle hide at 0 points")
+        print("  /mcp slots            – toggle empty slots")
+        print("  /mcp reset            – restore defaults")
         return
     end
     Update()

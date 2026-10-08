@@ -1,9 +1,9 @@
--- Mirra's Simple Combo Points: settings
+-- Mirra's Combo Points: settings
 
 local ADDON, ns = ...
 
-local PANEL_NAME = "Mirra's Simple Combo Points"
-local PREFIX = "|cffffcc00MSCP|r: "
+local PANEL_NAME = "Mirra's Combo Points"
+local PREFIX = "|cffffcc00MCP|r: "
 
 local L = {
     SUBTITLE        = "Combo points on your target's nameplate.",
@@ -40,7 +40,7 @@ local L = {
     HIDE_ZERO_DESC  = "Hides everything while the target has no combo points.",
     RESET           = "Restore defaults",
     RESET_DONE      = "Settings restored to defaults.",
-    HINT            = "Note: Only tested with the default Blizzard nameplates. Enemy nameplates must be enabled (V).\nQuick access: /mscp",
+    HINT            = "Note: Only tested with the default Blizzard nameplates. Enemy nameplates must be enabled (V).\nQuick access: /mcp",
 }
 
 local panel, category
@@ -420,6 +420,6 @@ function ns.OpenOptions()
     end
 end
 
-function MirrasSimpleComboPoints_OnCompartmentClick()
+function MirrasComboPoints_OnCompartmentClick()
     ns.OpenOptions()
 end
