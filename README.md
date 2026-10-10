@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="MirrasComboPoints_CurseForge_Icon.png" alt="Mirra's Combo Points logo" width="200">
+</p>
+
 # Mirra's Combo Points
 
 Shows your combo points on your target's nameplate. A lightweight addon for **WoW Forever**.
