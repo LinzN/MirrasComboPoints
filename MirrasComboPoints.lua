@@ -7,7 +7,7 @@ local MAX_PIPS = 10
 local FLAT = "Interface\\Buttons\\WHITE8X8"
 
 local defaults = {
-    size      = 15,
+    size      = 18,
     spacing   = 3,
     offsetX   = 0,
     offsetY   = 8,
@@ -15,7 +15,7 @@ local defaults = {
     hideEmpty = true,
     showEmpty = true,
     alpha     = 1,
-    shape     = "round",
+    shape     = "hexagon",
     style     = "gold",
     colorMode = "gradient",
     colorStart = { r = 1,   g = 0.9,  b = 0.1 },
