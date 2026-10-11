@@ -2,7 +2,7 @@
 ## Title: Mirra's Combo Points
 ## Notes: Shows your combo points on your target's nameplate.
 ## Author: Kekshaus
-## Version: 2.3.0
+## Version: 2.3.1
 ## SavedVariables: MirrasComboPointsDB
 ## IconTexture: Interface\AddOns\MirrasComboPoints\icon
 ## AddonCompartmentFunc: MirrasComboPoints_OnCompartmentClick
