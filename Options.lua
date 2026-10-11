@@ -12,11 +12,10 @@ local L = {
     DUMMY_NAME      = "Training Dummy",
     APPEARANCE      = "Appearance",
     POSITION        = "Position",
-    COLORS          = "Colors",
+    COLORS          = "Style & colors",
     BEHAVIOR        = "Behavior",
     SHAPE           = "Shape",
-    ROUND           = "Round",
-    SQUARE          = "Square",
+    STYLE           = "Style",
     SIZE            = "Pip size",
     SPACING         = "Spacing",
     OPACITY         = "Opacity",
@@ -121,6 +120,67 @@ local function Cycle(parent, key, label, options, x, y)
     end)
     btn.Refresh = function() btn:SetText(textFor(ns.db[key])) end
     return Register(btn)
+end
+
+-- Row of clickable shape icons; the selected one is highlighted in gold.
+local function ShapePicker(parent, label, x, y)
+    local holder = CreateFrame("Frame", nil, parent)
+    holder:SetSize(270, 24)
+    holder:SetPoint("TOPLEFT", x, y)
+
+    local text = holder:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    text:SetPoint("LEFT", 0, 0)
+    text:SetText(label)
+
+    local buttons = {}
+    for i, shape in ipairs(ns.SHAPES) do
+        local b = CreateFrame("Button", nil, holder)
+        b:SetSize(22, 22)
+        b:SetPoint("LEFT", 62 + (i - 1) * 23, 0)
+
+        local sel = b:CreateTexture(nil, "BACKGROUND")
+        sel:SetAllPoints()
+        sel:SetColorTexture(1, 0.82, 0, 0.22)
+
+        -- The texture has a glow margin around the shape, so draw it larger.
+        local icon = b:CreateTexture(nil, "ARTWORK")
+        icon:SetPoint("TOPLEFT", -3, 3)
+        icon:SetPoint("BOTTOMRIGHT", 3, -3)
+        icon:SetTexture(ns.MEDIA .. shape.key .. "_mask")
+
+        local hl = b:CreateTexture(nil, "HIGHLIGHT")
+        hl:SetAllPoints()
+        hl:SetColorTexture(1, 1, 1, 0.12)
+
+        b:SetScript("OnClick", function()
+            ns.db.shape = shape.key
+            if PlaySound and SOUNDKIT then PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON) end
+            holder.Refresh()
+            Apply()
+        end)
+        b:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(shape.name)
+            GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        b.key, b.sel, b.icon = shape.key, sel, icon
+        buttons[i] = b
+    end
+
+    holder.Refresh = function()
+        for _, b in ipairs(buttons) do
+            local on = ns.db.shape == b.key
+            b.sel:SetShown(on)
+            if on then
+                b.icon:SetVertexColor(1, 0.82, 0.1)
+            else
+                b.icon:SetVertexColor(0.65, 0.65, 0.65)
+            end
+        end
+    end
+    return Register(holder)
 end
 
 local function RoundTo(v, step)
@@ -346,7 +406,7 @@ local function BuildPanel()
     local LX, RX = 16, 330
     local y = -196
     SectionHeader(panel, L.APPEARANCE, LX, y)
-    Cycle(panel, "shape", L.SHAPE, { { "square", L.SQUARE }, { "round", L.ROUND } }, LX, y - 22)
+    ShapePicker(panel, L.SHAPE, LX, y - 22)
     Slider(panel, "size", L.SIZE, 4, 40, 1, nil, LX, y - 52)
     Slider(panel, "spacing", L.SPACING, 0, 20, 1, nil, LX, y - 98)
     Slider(panel, "alpha", L.OPACITY, 0.1, 1, 0.05,
@@ -358,16 +418,19 @@ local function BuildPanel()
     Slider(panel, "offsetY", L.OFFSET_Y, -50, 50, 1, nil, LX, y - 296)
 
     SectionHeader(panel, L.COLORS, RX, y)
-    Cycle(panel, "colorMode", L.COLOR_MODE, { { "gradient", L.GRADIENT }, { "single", L.SINGLE } }, RX, y - 22)
-    Swatch(panel, "colorStart", L.COLOR_START, false, RX, y - 52)
-    Swatch(panel, "colorEnd", L.COLOR_END, false, RX, y - 78)
-    Checkbox(panel, "useFullColor", L.FULL, L.FULL_DESC, RX, y - 104)
-    Swatch(panel, "colorFull", L.COLOR_FULL, false, RX, y - 144)
-    Swatch(panel, "colorEmpty", L.COLOR_EMPTY, true, RX, y - 170)
+    local styles = {}
+    for _, st in ipairs(ns.STYLES) do styles[#styles + 1] = { st.key, st.name } end
+    Cycle(panel, "style", L.STYLE, styles, RX, y - 22)
+    Cycle(panel, "colorMode", L.COLOR_MODE, { { "gradient", L.GRADIENT }, { "single", L.SINGLE } }, RX, y - 52)
+    Swatch(panel, "colorStart", L.COLOR_START, false, RX, y - 82)
+    Swatch(panel, "colorEnd", L.COLOR_END, false, RX, y - 108)
+    Checkbox(panel, "useFullColor", L.FULL, L.FULL_DESC, RX, y - 134)
+    Swatch(panel, "colorFull", L.COLOR_FULL, false, RX, y - 174)
+    Swatch(panel, "colorEmpty", L.COLOR_EMPTY, true, RX, y - 200)
 
-    SectionHeader(panel, L.BEHAVIOR, RX, y - 198)
-    Checkbox(panel, "showEmpty", L.SHOW_EMPTY, L.SHOW_EMPTY_DESC, RX, y - 218)
-    Checkbox(panel, "hideEmpty", L.HIDE_ZERO, L.HIDE_ZERO_DESC, RX, y - 258)
+    SectionHeader(panel, L.BEHAVIOR, RX, y - 228)
+    Checkbox(panel, "showEmpty", L.SHOW_EMPTY, L.SHOW_EMPTY_DESC, RX, y - 248)
+    Checkbox(panel, "hideEmpty", L.HIDE_ZERO, L.HIDE_ZERO_DESC, RX, y - 288)
 
     local resetBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     resetBtn:SetSize(180, 24)

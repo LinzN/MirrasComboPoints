@@ -15,7 +15,8 @@ local defaults = {
     hideEmpty = true,
     showEmpty = true,
     alpha     = 1,
-    shape     = "square",
+    shape     = "round",
+    style     = "gold",
     colorMode = "gradient",
     colorStart = { r = 1,   g = 0.9,  b = 0.1 },
     colorEnd   = { r = 1,   g = 0.15, b = 0.1 },
@@ -56,10 +57,64 @@ local function PipColor(i, max)
     return a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t
 end
 
-local TEX_ROUND  = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
-local function ShapeTexture()
-    return db.shape == "square" and FLAT or TEX_ROUND
+-- Pip textures live in Media/. Each texture is 64x64 with the shape in the
+-- central 44x44; the margin leaves room for the glow. Every layer of a pip
+-- uses the same frame, so the layers line up without per-layer insets.
+local MEDIA = "Interface\\AddOns\\MirrasComboPoints\\Media\\"
+local MARGIN = 10 / 44
+ns.MEDIA = MEDIA
+
+ns.SHAPES = {
+    { key = "round",   name = "Round" },
+    { key = "square",  name = "Square" },
+    { key = "diamond", name = "Diamond" },
+    { key = "hexagon", name = "Hexagon" },
+    { key = "star",    name = "Star" },
+    { key = "sparkle", name = "Sparkle" },
+    { key = "heart",   name = "Heart" },
+    { key = "shield",  name = "Shield" },
+    { key = "drop",    name = "Drop" },
+}
+
+-- bg/fill name the texture variant; rim, edge, glow and shine are optional layers.
+local STYLES = {
+    gold   = { bg = "inner", fill = "geminner", rim = { 1, 0.82, 0.42 }, shine = true },
+    silver = { bg = "inner", fill = "geminner", rim = { 0.85, 0.89, 0.96 }, shine = true },
+    glow   = { bg = "mask",  fill = "gem", edge = true, glow = true, shine = true },
+    flat   = { bg = "mask",  fill = "thin" },
+}
+ns.STYLES = {
+    { key = "gold",   name = "Gold" },
+    { key = "silver", name = "Silver" },
+    { key = "glow",   name = "Glow" },
+    { key = "flat",   name = "Flat" },
+}
+
+local function IsKnown(list, key)
+    for _, e in ipairs(list) do
+        if e.key == key then return true end
+    end
+    return false
 end
+
+local function CurrentStyle()
+    local shape = IsKnown(ns.SHAPES, db.shape) and db.shape or defaults.shape
+    local style = STYLES[db.style] and db.style or defaults.style
+    return shape, style, STYLES[style]
+end
+
+-- Draw order, bottom to top. "gated" layers are only visible for pips that
+-- are filled; the rest belong to the empty slot.
+local LAYERS = {
+    { key = "glow" },
+    { key = "fullGlow" },
+    { key = "bg" },
+    { key = "edge" },
+    { key = "rim" },
+    { key = "fill" },
+    { key = "full" },
+    { key = "shine",    add = true },
+}
 
 local function NewBar(parent, level)
     local b = CreateFrame("StatusBar", nil, parent)
@@ -72,18 +127,10 @@ end
 
 local function CreatePip(parent)
     local f = CreateFrame("Frame", nil, parent)
-
-    local bgBar = NewBar(f, 1)
-    bgBar:SetAllPoints()
-
-    local bar = NewBar(f, 2)
-    bar:SetPoint("TOPLEFT", 2, -2)
-    bar:SetPoint("BOTTOMRIGHT", -2, 2)
-
-    local fullBar = NewBar(f, 3)
-    fullBar:SetAllPoints(bar)
-
-    f.bgBar, f.bar, f.fullBar = bgBar, bar, fullBar
+    f.layers = {}
+    for i, l in ipairs(LAYERS) do
+        f.layers[l.key] = NewBar(f, i)
+    end
     return f
 end
 
@@ -97,25 +144,49 @@ local function CreateGroup(parent, name)
     return g
 end
 
+local function SetLayer(bar, texture, add)
+    bar:SetStatusBarTexture(texture)
+    local t = bar:GetStatusBarTexture()
+    if t and t.SetBlendMode then t:SetBlendMode(add and "ADD" or "BLEND") end
+end
+
+-- Textures and positions only change with the settings, not with the
+-- combo points, so they are applied only when this key changes.
+local function LayoutKey(max)
+    return table.concat({ db.shape or "", db.style or "", db.size, db.spacing, max }, ":")
+end
+
 local function LayoutPips(g, max)
+    local key = LayoutKey(max)
+    if g.layoutKey == key then return end
+    g.layoutKey = key
+
+    local shape, _, st = CurrentStyle()
     local size, gap = db.size, db.spacing
+    local m = size * MARGIN
     g:SetSize(max * size + (max - 1) * gap, size)
-    local tex = ShapeTexture()
-    local inset = math.max(1, math.floor(size / 7 + 0.5))
-    local e = db.colorEmpty
+
+    local textures = {
+        glow = st.glow and "glow", fullGlow = st.glow and "glow",
+        bg = st.bg, edge = st.edge and "edge", rim = st.rim and "rim",
+        fill = st.fill, full = st.fill, shine = st.shine and "shine",
+    }
     for i = 1, MAX_PIPS do
         local p = g.pips[i]
         p:ClearAllPoints()
         if i <= max then
             p:SetSize(size, size)
             p:SetPoint("LEFT", g, "LEFT", (i - 1) * (size + gap), 0)
-            p.bar:SetPoint("TOPLEFT", inset, -inset)
-            p.bar:SetPoint("BOTTOMRIGHT", -inset, inset)
-            for _, b in ipairs({ p.bgBar, p.bar, p.fullBar }) do
-                b:SetStatusBarTexture(tex)
+            for _, l in ipairs(LAYERS) do
+                local bar, variant = p.layers[l.key], textures[l.key]
+                bar:ClearAllPoints()
+                bar:SetPoint("TOPLEFT", p, "TOPLEFT", -m, m)
+                bar:SetPoint("BOTTOMRIGHT", p, "BOTTOMRIGHT", m, -m)
+                if variant then
+                    SetLayer(bar, MEDIA .. shape .. "_" .. variant, l.add)
+                end
+                bar.used = variant and true or false
             end
-            p.bgBar:SetStatusBarColor(e.r, e.g, e.b, e.a or 0.85)
-            p.bgBar:SetAlpha(db.showEmpty and 1 or 0)
             p:Show()
         else
             p:Hide()
@@ -123,21 +194,67 @@ local function LayoutPips(g, max)
     end
 end
 
+-- A filled layer shows for pip i once cur >= i. Using the StatusBar's own
+-- min/max keeps this working when cur is a protected (secret) value.
+local function Gate(bar, i, cur)
+    bar:SetMinMaxValues(i - 1, i)
+    bar:SetValue(cur)
+end
+
+-- Empty-slot layers: always visible (or tied to the first point when
+-- hiding at 0), or only under filled pips when empty slots are off.
+local function Slot(bar, i, cur)
+    if db.showEmpty then
+        bar:SetMinMaxValues(0, 1)
+        bar:SetValue(db.hideEmpty and cur or 1)
+    else
+        Gate(bar, i, cur)
+    end
+end
+
 local function PaintGroup(g, cur, max)
     LayoutPips(g, max)
-    local fc = db.colorFull
+    local _, _, st = CurrentStyle()
+    local fc, e = db.colorFull, db.colorEmpty
+    local full = db.useFullColor
     for i = 1, max do
-        local p = g.pips[i]
-        p.bgBar:SetValue(db.hideEmpty and cur or 1)
+        local L = g.pips[i].layers
+        local r, gr, b = PipColor(i, max)
 
-        p.bar:SetMinMaxValues(i - 1, i)
-        p.bar:SetValue(cur)
-        p.bar:SetStatusBarColor(PipColor(i, max))
+        Slot(L.bg, i, cur)
+        L.bg:SetStatusBarColor(e.r, e.g, e.b, e.a or 0.85)
+        L.bg:SetShown(L.bg.used and db.showEmpty)
 
-        p.fullBar:SetMinMaxValues(max - 1, max)
-        p.fullBar:SetValue(cur)
-        p.fullBar:SetStatusBarColor(fc.r, fc.g, fc.b, 1)
-        p.fullBar:SetShown(db.useFullColor)
+        Slot(L.edge, i, cur)
+        L.edge:SetStatusBarColor(r * 0.8, gr * 0.8, b * 0.8, 0.9)
+        L.edge:SetShown(L.edge.used and db.showEmpty)
+
+        Slot(L.rim, i, cur)
+        if st.rim then L.rim:SetStatusBarColor(st.rim[1], st.rim[2], st.rim[3], 1) end
+        L.rim:SetShown(L.rim.used)
+
+        Gate(L.glow, i, cur)
+        L.glow:SetStatusBarColor(r, gr, b, 0.75)
+        L.glow:SetShown(L.glow.used)
+
+        Gate(L.fill, i, cur)
+        L.fill:SetStatusBarColor(r, gr, b, 1)
+        L.fill:SetShown(L.fill.used)
+
+        -- The "full" layers only light up when the last pip is filled.
+        L.full:SetMinMaxValues(max - 1, max)
+        L.full:SetValue(cur)
+        L.full:SetStatusBarColor(fc.r, fc.g, fc.b, 1)
+        L.full:SetShown(L.full.used and full)
+
+        L.fullGlow:SetMinMaxValues(max - 1, max)
+        L.fullGlow:SetValue(cur)
+        L.fullGlow:SetStatusBarColor(fc.r, fc.g, fc.b, 0.75)
+        L.fullGlow:SetShown(L.fullGlow.used and full)
+
+        Gate(L.shine, i, cur)
+        L.shine:SetStatusBarColor(1, 1, 1, 1)
+        L.shine:SetShown(L.shine.used)
     end
     g:SetAlpha(db.alpha or 1)
 end
@@ -324,6 +441,15 @@ SlashCmdList.MIRRASCOMBOPOINTS = function(input)
         db.offsetX = n
     elseif cmd == "y" and n then
         db.offsetY = n
+    elseif cmd == "shape" or cmd == "style" then
+        local list = cmd == "shape" and ns.SHAPES or ns.STYLES
+        local names = {}
+        for _, e in ipairs(list) do names[#names + 1] = e.key end
+        if not (val and IsKnown(list, val)) then
+            Print("Available " .. cmd .. "s: " .. table.concat(names, ", "))
+            return
+        end
+        db[cmd] = val
     elseif cmd == "top" or cmd == "bottom" then
         db.anchor = cmd:upper()
     elseif cmd == "empty" then
@@ -344,6 +470,8 @@ SlashCmdList.MIRRASCOMBOPOINTS = function(input)
         print("  /mcp debug            – print diagnostics")
         print("  /mcp size <4-40>      – pip size (current " .. db.size .. ")")
         print("  /mcp spacing <0-20>   – spacing (current " .. db.spacing .. ")")
+        print("  /mcp shape <name>     – pip shape (current " .. tostring(db.shape) .. ")")
+        print("  /mcp style <name>     – pip style (current " .. tostring(db.style) .. ")")
         print("  /mcp x <n> | y <n>    – offset (current " .. db.offsetX .. " / " .. db.offsetY .. ")")
         print("  /mcp top | bottom     – above/below the health bar")
         print("  /mcp empty            – toggle hide at 0 points")

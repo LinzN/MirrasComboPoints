@@ -9,7 +9,8 @@ Shows your combo points on your target's nameplate. A lightweight addon for **Wo
 ## Features
 
 - Combo points above or below your target's health bar
-- Round or square pips
+- 9 shapes: round, square, diamond, hexagon, star, sparkle, heart, shield, drop
+- 4 styles: gold rim, silver rim, glow and flat, freely combinable with every shape
 - Adjustable size, spacing, opacity and position
 - Gradient or single color
 - Custom color when all points are full
@@ -31,6 +32,8 @@ Enemy nameplates must be enabled (default key: **V**).
 | `/mcp` | Open settings |
 | `/mcp size <4-40>` | Pip size |
 | `/mcp spacing <0-20>` | Spacing between pips |
+| `/mcp shape <name>` | Pip shape (e.g. `star`, `heart`) |
+| `/mcp style <name>` | Pip style (`gold`, `silver`, `glow`, `flat`) |
 | `/mcp x <n>` / `/mcp y <n>` | Position offset |
 | `/mcp top` / `/mcp bottom` | Above or below the health bar |
 | `/mcp empty` | Toggle hiding at 0 combo points |
